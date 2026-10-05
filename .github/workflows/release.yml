@@ -1,0 +1,47 @@
+name: Build and publish release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Restore NuGet packages
+        run: nuget restore "Excel Merge.sln"
+
+      - name: Build application
+        run: msbuild "Excel Merge.sln" /m /p:Configuration=Release /p:Platform="Any CPU" /verbosity:minimal
+
+      - name: Package application
+        shell: pwsh
+        run: |
+          $output = Join-Path $env:GITHUB_WORKSPACE 'Excel Merge\bin\Release'
+          if (-not (Test-Path (Join-Path $output 'Excel Merge.exe'))) {
+            throw "Build output not found: $output"
+          }
+
+          $stage = Join-Path $env:RUNNER_TEMP 'Excel-Merger-release'
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+
+          Get-ChildItem -LiteralPath $output -File |
+            Where-Object { $_.Name -ne 'License.txt' } |
+            Copy-Item -Destination $stage
+
+          $archive = Join-Path $env:GITHUB_WORKSPACE "Excel-Merger-$($env:GITHUB_REF_NAME)-windows-x64.zip"
+          Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $archive -Force
+          "RELEASE_ARCHIVE=$archive" >> $env:GITHUB_ENV
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$env:GITHUB_REF_NAME" "$env:RELEASE_ARCHIVE" --verify-tag --title "$env:GITHUB_REF_NAME" --generate-notes

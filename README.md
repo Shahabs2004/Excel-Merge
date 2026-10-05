@@ -39,6 +39,19 @@ msbuild "Excel Merge.sln" /restore /p:Configuration=Release
 
 The executable is normally written under `Excel Merge\bin\Release\` (the precise output path may vary by MSBuild configuration). Run `Excel Merge.exe` on a Windows machine with the .NET Framework 4.8 Runtime installed.
 
+## Create a GitHub Release
+
+The workflow in `.github/workflows/release.yml` builds the app on a Windows runner and attaches a ZIP containing the release output to a GitHub Release. It runs when a tag beginning with `v` is pushed (for example, `v1.0.0`). The workflow needs the repository's default `GITHUB_TOKEN` with `contents: write`; no additional secret is required.
+
+Create and push a version tag to start the release:
+
+```powershell
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The workflow generates release notes from GitHub's release notes API. The resulting asset is named `Excel-Merger-v1.0.0-windows-x64.zip` for the example tag. The ZIP contains the executable and its build output dependencies; `License.txt` is excluded because it contains third-party license data.
+
 ## Using the application
 
 1. Click **فایل های اکسل را انتخاب کنید** (select Excel files) and choose one or more `.xlsx` workbooks. The selected paths appear in the status area.
