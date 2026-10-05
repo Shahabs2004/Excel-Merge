@@ -23,7 +23,7 @@ jobs:
         run: nuget restore "Excel Merge.sln"
 
       - name: Build application
-        run: msbuild "Excel Merge.sln" /m /p:Configuration=Release /p:Platform="Any CPU" /verbosity:minimal
+        run: msbuild "Excel Merge.sln" /m /p:Configuration=Release /p:Platform="Any CPU" /p:SignManifests=false /verbosity:minimal
 
       - name: Package application
         shell: pwsh
