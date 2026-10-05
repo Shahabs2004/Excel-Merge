@@ -28,7 +28,7 @@ jobs:
       - name: Package application
         shell: pwsh
         run: |
-          $output = Join-Path $env:GITHUB_WORKSPACE 'Excel Merge\bin\Release'
+          $output = Join-Path $env:GITHUB_WORKSPACE 'bin\Release'
           if (-not (Test-Path (Join-Path $output 'Excel Merge.exe'))) {
             throw "Build output not found: $output"
           }
