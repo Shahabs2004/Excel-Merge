@@ -9,8 +9,12 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
+  build:
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [x86, x64]
 
     steps:
       - name: Check out source
@@ -23,7 +27,7 @@ jobs:
         run: nuget restore "Excel Merge.sln"
 
       - name: Build application
-        run: msbuild "Excel Merge.sln" /m /p:Configuration=Release /p:Platform="Any CPU" /p:SignManifests=false /verbosity:minimal
+        run: msbuild "Excel Merge.sln" /m /p:Configuration=Release /p:Platform="Any CPU" /p:PlatformTarget=${{ matrix.architecture }} /p:SignManifests=false /verbosity:minimal
 
       - name: Package application
         shell: pwsh
@@ -33,18 +37,43 @@ jobs:
             throw "Build output not found: $output"
           }
 
-          $stage = Join-Path $env:RUNNER_TEMP 'Excel-Merger-release'
+          $architecture = '${{ matrix.architecture }}'
+          $stage = Join-Path $env:RUNNER_TEMP "Excel-Merger-$architecture-release"
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
 
           Get-ChildItem -LiteralPath $output -File |
             Where-Object { $_.Name -ne 'License.txt' } |
             Copy-Item -Destination $stage
 
-          $archive = Join-Path $env:GITHUB_WORKSPACE "Excel-Merger-$($env:GITHUB_REF_NAME)-windows-x64.zip"
+          $archive = Join-Path $env:GITHUB_WORKSPACE "Excel-Merger-$($env:GITHUB_REF_NAME)-windows-$architecture.zip"
           Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $archive -Force
           "RELEASE_ARCHIVE=$archive" >> $env:GITHUB_ENV
+
+      - name: Upload build package
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows-${{ matrix.architecture }}
+          path: Excel-Merger-${{ github.ref_name }}-windows-${{ matrix.architecture }}.zip
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - name: Download build packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-windows-*
+          path: release-assets
+          merge-multiple: true
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$env:GITHUB_REF_NAME" "$env:RELEASE_ARCHIVE" --verify-tag --title "$env:GITHUB_REF_NAME" --generate-notes
+        shell: pwsh
+        run: |
+          $assets = (Get-ChildItem -LiteralPath 'release-assets' -Filter '*.zip' -File).FullName
+          if ($assets.Count -ne 2) {
+            throw "Expected both x86 and x64 packages, found $($assets.Count)."
+          }
+          gh release create "$env:GITHUB_REF_NAME" @assets --verify-tag --title "$env:GITHUB_REF_NAME" --generate-notes

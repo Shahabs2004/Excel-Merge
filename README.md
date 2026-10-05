@@ -41,7 +41,7 @@ The executable is normally written under `Excel Merge\bin\Release\` (the precise
 
 ## Create a GitHub Release
 
-The workflow in `.github/workflows/release.yml` builds the app on a Windows runner and attaches a ZIP containing the release output to a GitHub Release. It runs when a tag beginning with `v` is pushed (for example, `v1.0.0`). The workflow needs the repository's default `GITHUB_TOKEN` with `contents: write`; no additional secret is required.
+The workflow in `.github/workflows/release.yml` builds x86 and x64 versions of the app on Windows runners and attaches both ZIP packages to one GitHub Release. It runs when a tag beginning with `v` is pushed (for example, `v1.0.0`). The workflow needs the repository's default `GITHUB_TOKEN` with `contents: write`; no additional secret is required.
 
 Create and push a version tag to start the release:
 
@@ -50,7 +50,7 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-The workflow generates release notes from GitHub's release notes API. The resulting asset is named `Excel-Merger-v1.0.0-windows-x64.zip` for the example tag. The ZIP contains the executable and its build output dependencies; `License.txt` is excluded because it contains third-party license data.
+The workflow generates release notes from GitHub's release notes API. For the example tag, the assets are named `Excel-Merger-v1.0.0-windows-x86.zip` and `Excel-Merger-v1.0.0-windows-x64.zip`. Each ZIP contains the executable and its build output dependencies; `License.txt` is excluded because it contains third-party license data.
 
 ## Using the application
 
